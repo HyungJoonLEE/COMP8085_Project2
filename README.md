@@ -1,2 +1,2 @@
-# COMP8085_Project12
+# COMP8085_Project2
 AI project - Yelp Rating Prediction using Sentiment Analysis

@@ -50,12 +50,12 @@ def convert_to_csv(json_file_path):
     df = pd.DataFrame(data['reviews'])
 
     # Fill NaN values with 0 or another appropriate placeholder before type conversion
-    # df.fillna(0, inplace=True)
+    df.fillna(0, inplace=True)
     # Make rate fields to integer
-    # df['stars'] = pd.DataFrame(data['reviews'])['stars'].astype(int)
-    # df['useful'] = pd.DataFrame(data['reviews'])['useful'].astype(int)
-    # df['funny'] = pd.DataFrame(data['reviews'])['funny'].astype(int)
-    # df['cool'] = pd.DataFrame(data['reviews'])['cool'].astype(int)
+    df['stars'] = df['stars'].astype(int)
+    df['useful'] = df['useful'].astype(int)
+    df['funny'] = df['funny'].astype(int)
+    df['cool'] = df['cool'].astype(int)
 
     output_csv_path = './data/yelp_review.csv'
     df.to_csv(output_csv_path, index=False)

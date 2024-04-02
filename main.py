@@ -70,8 +70,12 @@ def main():
                              encoding='ISO-8859-1',
                              low_memory=False, nrows=80000)
 
-            df[['useful', 'funny', 'cool','stars']] = np.where(df[['useful', 'funny', 'cool','stars']] > 5, 5, df[['useful', 'funny', 'cool','stars']])
-            df.to_csv(output_file_path1, index=False)
+            # Filtering rows: keep rows where all specified columns have values between 1 and 5 (inclusive)
+            filtered_df = df[(df[['useful', 'funny', 'cool', 'stars']] >= 1).all(axis=1) &
+                             (df[['useful', 'funny', 'cool', 'stars']] <= 5).all(axis=1)]
+
+            # Save the filtered data to a new CSV file
+            filtered_df.to_csv(output_file_path1, index=False)
             #df = pd.read_csv(output_file_path1, encoding='ISO-8859-1', low_memory=False,nrows=80000)
 
         df = pd.read_csv(output_file_path1, encoding='ISO-8859-1', low_memory=False, nrows=80000)

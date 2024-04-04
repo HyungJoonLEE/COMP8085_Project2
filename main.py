@@ -12,13 +12,13 @@ import pandas as pd
 import pickle
 from sklearn.model_selection import train_test_split
 import os
-from models import NB
+from models import NB1
 
 
 # TODO: You need to add json file to ./data directory
 input_file_path = './data/yelp_academic_dataset_review.json'
 output_file_path = './data/yelp_review.csv'
-output_file_path1 = './data/yelp_review_1.csv'
+output_file_path1 = './data/yelp_review_untouched.csv'
 
 def get_args(args):
     parser = argparse.ArgumentParser(description="COMP8085 Project 1")
@@ -42,7 +42,7 @@ def get_args(args):
 
 
 function_hashmap = {
-    'NB': NB.naive_bay,
+    'NB': NB1.naive_bay,
 
 }
 
@@ -63,8 +63,6 @@ def main():
 
 
         # Process data - change values of ports and null + factorize
-
-
         if not os.path.exists(output_file_path1):
             df = pd.read_csv(output_file_path,
                              encoding='ISO-8859-1',

@@ -7,8 +7,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import pos_tag
 from word2number import w2n
-import torch
-
+from sklearn.model_selection import train_test_split
 
 
 TREEBANK_TO_WORDNET_POS = {
@@ -117,3 +116,26 @@ def save_to_csv(data, file_path):
     reviews.to_csv(file_path, mode='a', index=False,
                    header=not pd.io.common.file_exists(file_path))
 
+
+def split_data(file_name):
+    df = pd.read_csv(file_name, encoding='ISO-8859-1', low_memory=False)
+
+    # Split original csv into train and validate+test (0.7 : 0.3)
+    train_df, validate_test_df = train_test_split(df,
+                                                  train_size=0.7,
+                                                  shuffle=True,
+                                                  stratify=df['stars'],
+                                                  random_state=32)
+
+    # Split validate+test into validate and test (0.5 : 0.5)
+    validate_df, test_df = train_test_split(validate_test_df,
+                                            train_size=0.5,
+                                            shuffle=True,
+                                            stratify=validate_test_df[
+                                                'stars'],
+                                            random_state=34)
+
+    # Save in to csv format
+    train_df.to_csv('./data/train_data.csv', index=False)
+    test_df.to_csv('./data/test_data.csv', index=False)
+    validate_df.to_csv('./data/validate_data.csv', index=False)

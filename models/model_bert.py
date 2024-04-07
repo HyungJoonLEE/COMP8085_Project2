@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from yelp_transformer import *
+from models import BERT_helper_class
 
 import numpy as np
 import pandas as pd
@@ -35,7 +35,9 @@ rcParams['figure.figsize'] = 12, 8
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 bert_model_name = 'bert-base-uncased'
 tokenizer = BertTokenizer.from_pretrained(bert_model_name)
 
@@ -79,20 +81,20 @@ def split_data(df):
     return train_df, val_df, test_df
 
 
-def set_dataset(train_df, val_df, test_df):
-    MAX_LEN = 128
-    training_data = YelpReview(review=train_df['text'].to_numpy(),
-                               target=train_df['stars'].to_numpy(),
+def set_dataset(train_df, val_df, test_df, target):
+    MAX_LEN = 160
+    training_data = BERT_helper_class.YelpReview(review=train_df['text'].to_numpy(),
+                               target=train_df[target].to_numpy(),
                                tokenizer=tokenizer,
                                max_len=MAX_LEN)
 
-    validation_data = YelpReview(review=val_df['text'].to_numpy(),
-                                 target=val_df['stars'].to_numpy(),
+    validation_data = BERT_helper_class.YelpReview(review=val_df['text'].to_numpy(),
+                                 target=val_df[target].to_numpy(),
                                  tokenizer=tokenizer,
                                  max_len=MAX_LEN)
 
-    test_data = YelpReview(review=test_df['text'].to_numpy(),
-                           target=test_df['stars'].to_numpy(),
+    test_data = BERT_helper_class.YelpReview(review=test_df['text'].to_numpy(),
+                           target=test_df[target].to_numpy(),
                            tokenizer=tokenizer,
                            max_len=MAX_LEN)
     return training_data, validation_data, test_data
@@ -118,8 +120,8 @@ def get_sample_batch(data_loader):
  to get the final output we must apply softmax at the end.
 """
 def set_sentiment_classifier(sample_batch):
-    class_names = ['1-Star', '2-Star', '3-Star', '4-Star', '5-Star']
-    model = SentimentClassifier(len(class_names))
+    class_names = ['1', '2', '3', '4', '5']
+    model = BERT_helper_class.SentimentClassifier(len(class_names))
     model = model.to(device)
 
     # An evaluation run of the model
@@ -130,7 +132,7 @@ def set_sentiment_classifier(sample_batch):
 
 
 def set_optimizer(model, data_loader):
-    EPOCHS = 10
+    EPOCHS = 4
     optimizer = optim.AdamW(model.parameters(), lr=1e-4)
 
     total_steps = len(data_loader) * EPOCHS
@@ -163,7 +165,7 @@ def train_model(model, data_loader, loss_fn, optimizer, device, scheduler, n_exa
         float: Average training loss.
 
     """
-    model=model.train()
+    model = model.train()
     losses = []
     correct_predictions = 0
 
@@ -208,7 +210,7 @@ def eval_model(model, data_loader, loss_fn, device, n_examples):
 
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
-            _,preds = torch.max(outputs, dim = 1)
+            _,preds = torch.max(outputs, dim=1)
 
             loss = loss_fn(outputs, targets.detach())
             correct_predictions += torch.sum(preds == targets).cpu()
@@ -247,12 +249,14 @@ def get_predictions(model, data_loader):
 
 def process_bert(train_df, val_df, EPOCHS, model,
                  train_loader, val_loader,
-                 loss_fn, optimizer, device, scheduler):
+                 loss_fn, optimizer, device, scheduler, target):
     history = defaultdict(list)
     best_accuracy = 0
 
     df_train_size = len(train_df)
     df_val_size = len(val_df)
+
+    filename = f"bert_model_{target}.bin"
 
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch + 1}/ {EPOCHS}')
@@ -272,8 +276,7 @@ def process_bert(train_df, val_df, EPOCHS, model,
         history['val_loss'].append(val_loss)
 
         if val_acc > best_accuracy:
-            torch.save(model.state_dict(), 'best_model_state.bin')
-            torch.save(model.state_dict(), 'best_model_state.pkt')
+            torch.save(model.state_dict(), filename)
             best_accuracy = val_acc
 
 
@@ -288,6 +291,7 @@ def get_predictions(model, data_loader):
 
     with torch.no_grad():
         for d in tqdm(data_loader):
+
             texts = d["review"]
             input_ids = d["input_id"].to(device)
             attention_mask = d["attention_mask"].to(device)
@@ -319,8 +323,7 @@ def show_confusion_matrix(confusion_matrix):
     plt.xlabel('Predicted Sentiment')
 
 
-### Predicting on Raw text data
-
+# Predicting raw text data
 def get_sentiment(sample_review, model):
     class_names = ['1-Star', '2-Star', '3-Star', '4-Star', '5-Star']
 
@@ -362,38 +365,28 @@ def get_sentiment(sample_review, model):
     print(f'Sentiment  : {class_names[prediction]}')
 
 
-def initialize_bert_model(file_name):
-    df = read_file(file_name)
-    df['stars'].apply(map_sentiment_scores)
-    train_df, val_df, test_df = split_data(df)
-    training_data, validation_data, test_data = set_dataset(train_df,
-                                                            val_df,
-                                                            test_df)
-    train_loader, test_loader, val_loader = set_dataloader(training_data,
-                                                           test_data,
-                                                           validation_data)
-    sample_batch = get_sample_batch(train_loader)
-    model = set_sentiment_classifier(sample_batch)
-    EPOCHS, optimizer, total_steps, scheduler, loss_fn = set_optimizer(model,
-                                                                     train_loader)
-    process_bert(train_df, val_df, EPOCHS, model,
-                 train_loader, val_loader,
-                 loss_fn, optimizer, device, scheduler)
+def use_trained_model(file_name, target):
+    BATCH_SIZE = 50
+    trained_model_name = f'bert_model_{target}.bin'
 
-
-def calculate_star_prediction(trained_model_name, file_name):
     df = read_file(file_name)
-    df['stars'].apply(map_sentiment_scores)
-    test_loader = YelpReview(review=df['text'].to_numpy(),
-                             target=df['stars'].to_numpy(),
+    df[target].apply(map_sentiment_scores)
+    test_data = BERT_helper_class.YelpReview(review=df['text'].to_numpy(),
+                             target=df[target].to_numpy(),
                              tokenizer=tokenizer,
-                             max_len=128)
+                             max_len=160)
 
-    class_names = ['1-Star', '2-Star', '3-Star', '4-Star', '5-Star']
-    model = SentimentClassifier(len(class_names))
+    test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
+
+    class_names = ['1', '2', '3', '4', '5']
+    model = BERT_helper_class.SentimentClassifier(len(class_names))
+
     model.load_state_dict(
         torch.load(trained_model_name, map_location=torch.device('cpu')))
-    y_review_texts, y_pred, y_pred_probs, y_test = get_predictions(model.to(device),test_loader)
+
+    y_review_texts, y_pred, y_pred_probs, y_test = get_predictions(model.to(
+        device), test_loader)
+
     print(classification_report(y_test, y_pred, target_names=class_names))
 
     cm = confusion_matrix(y_test, y_pred)
@@ -403,8 +396,31 @@ def calculate_star_prediction(trained_model_name, file_name):
 
 def live_star_prediction(trained_model_name, text):
     class_names = ['1-Star', '2-Star', '3-Star', '4-Star', '5-Star']
-    model = SentimentClassifier(len(class_names))
+    model = BERT_helper_class.SentimentClassifier(len(class_names))
     model.load_state_dict(
         torch.load(trained_model_name, map_location=torch.device('cpu')))
     get_sentiment(text, model)
 
+
+def train_model(training_data, test_data, validate_data, target):
+    train_df = read_file(training_data)
+    val_df = read_file(validate_data)
+    test_df = read_file(test_data)
+
+    train_df[target].apply(map_sentiment_scores)
+    val_df[target].apply(map_sentiment_scores)
+    test_df[target].apply(map_sentiment_scores)
+
+    training_data, validation_data, test_data = set_dataset(train_df,
+                                                            val_df,
+                                                            test_df)
+    train_loader, test_loader, val_loader = set_dataloader(training_data,
+                                                           test_data,
+                                                           validation_data)
+    sample_batch = get_sample_batch(train_loader)
+    model = set_sentiment_classifier(sample_batch)
+    EPOCHS, optimizer, total_steps, scheduler, loss_fn = set_optimizer(model,
+                                                                       train_loader)
+    process_bert(train_df, val_df, EPOCHS, model,
+                 train_loader, val_loader,
+                 loss_fn, optimizer, device, scheduler, target)

@@ -21,7 +21,7 @@ class YelpReview(Dataset):
         encoding = self.tokenizer.encode_plus(
             review,
             add_special_tokens=True,
-            max_length=128,
+            max_length=160,
             truncation=True,
             return_token_type_ids=False,
             pad_to_max_length=True,

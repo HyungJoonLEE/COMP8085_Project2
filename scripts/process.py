@@ -7,6 +7,8 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import pos_tag
 from word2number import w2n
+import torch
+
 
 
 TREEBANK_TO_WORDNET_POS = {
@@ -29,7 +31,7 @@ def is_missing_attr(json_review):
 
 def clean_punctuation(text_val):
     # remove special characters (?,!,#,-,/ ...)
-    cleaned = re.sub(r'[^\w\s]', '', text_val)
+    cleaned = re.sub(r'[^\w\s]|["\r\n]', '', text_val)
     return cleaned
 
 
@@ -88,15 +90,14 @@ def clean_lemmatization(text_val):
 def process_line(json_line):
     new_text = json_line['text'].lower()
     new_text = clean_punctuation(new_text)
-    new_text = clean_stopwords(new_text)
-    new_text = clean_lemmatization(new_text)
-    new_text = clean_numbers(new_text)
+    # new_text = clean_stopwords(new_text)
+    # new_text = clean_lemmatization(new_text)
+    # new_text = clean_numbers(new_text)
     json_line['text'] = new_text
     return json_line
 
 
 def clean_json(input_file_path, output_file_path):
-    count = 0
     with open(input_file_path, 'r', encoding='utf-8', errors='ignore') as file:
         data = []
         for line in file:
@@ -104,8 +105,6 @@ def clean_json(input_file_path, output_file_path):
 
             processed_line = process_line(json_line)
             data.append(processed_line)
-            count += 1
-            print(count)
     save_to_csv(data, output_file_path)
 
 
@@ -117,3 +116,4 @@ def save_to_csv(data, file_path):
                           (reviews['cool'] != -1)]
     reviews.to_csv(file_path, mode='a', index=False,
                    header=not pd.io.common.file_exists(file_path))
+

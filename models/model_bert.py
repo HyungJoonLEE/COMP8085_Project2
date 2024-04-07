@@ -278,6 +278,7 @@ def process_bert(train_df, val_df, EPOCHS, model,
 
 
 def get_predictions(model, data_loader):
+
     model = model.eval()
 
     review_texts = []
@@ -312,8 +313,8 @@ def get_predictions(model, data_loader):
 
 def show_confusion_matrix(confusion_matrix):
     hmap = sns.heatmap(confusion_matrix, annot=True, fmt="d", cmap="Blues")
-    hmap.yaxis.set_ticklabels(hmap.yaxis.get_ticklabels(), rotation = 0, ha='right')
-    hmap.xaxis.set_ticklabels(hmap.xaxis.get_ticklabels(), rotation = 30, ha='right')
+    hmap.yaxis.set_ticklabels(hmap.yaxis.get_ticklabels(), rotation=0, ha='right')
+    hmap.xaxis.set_ticklabels(hmap.xaxis.get_ticklabels(), rotation=30, ha='right')
     plt.ylabel('True Sentiment')
     plt.xlabel('Predicted Sentiment')
 

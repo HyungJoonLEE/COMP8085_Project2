@@ -319,6 +319,49 @@ def show_confusion_matrix(confusion_matrix):
     plt.xlabel('Predicted Sentiment')
 
 
+### Predicting on Raw text data
+
+def get_sentiment(sample_review, model):
+    class_names = ['1-Star', '2-Star', '3-Star', '4-Star', '5-Star']
+
+    # get input ids and attention mask
+    encode_sample_review = tokenizer.encode_plus(
+        sample_review,
+        add_special_tokens=True,
+        max_length=128,
+        truncation=True,
+        return_token_type_ids=False,
+        pad_to_max_length=True,
+        return_attention_mask=True,
+        return_tensors='pt')
+
+    input_ids = encode_sample_review['input_ids'].to(device)
+    attention_mask = encode_sample_review['attention_mask'].to(device)
+    # predict output
+    output = model(input_ids, attention_mask).to(device)
+    _, prediction = torch.max(output, dim=1)
+    # output as probabilities
+    pred_probs = F.softmax(output, dim=1).cpu().detach().numpy().reshape(5)
+
+    data = {'class_names': class_names,
+            'value': pred_probs}
+
+    # Create DataFrame
+    df = pd.DataFrame(data)
+    # plot bars for probability of each sentiment
+    sns.barplot(x='value', y='class_names', data=df, orient='h')
+    plt.ylabel('sentiment')
+    plt.xlabel('probability')
+    plt.xlim([0, 1])
+    print(f'Review text: {sample_review}')
+    print('=*' * 50)
+
+    print(
+        f'1-star % : {pred_probs[0]:.4f}, 2-star % : {pred_probs[1]:.4f}, 3-star % : {pred_probs[2]:.4f}, 4-star % : {pred_probs[3]:.4f}, 5-star % : {pred_probs[4]:.4f}')
+
+    print(f'Sentiment  : {class_names[prediction]}')
+
+
 def initialize_bert_model(file_name):
     df = read_file(file_name)
     df['stars'].apply(map_sentiment_scores)
@@ -356,3 +399,12 @@ def calculate_star_prediction(trained_model_name, file_name):
     cm = confusion_matrix(y_test, y_pred)
     df_cm = pd.DataFrame(cm, index=class_names, columns=class_names)
     show_confusion_matrix(df_cm)
+
+
+def live_star_prediction(trained_model_name, text):
+    class_names = ['1-Star', '2-Star', '3-Star', '4-Star', '5-Star']
+    model = SentimentClassifier(len(class_names))
+    model.load_state_dict(
+        torch.load(trained_model_name, map_location=torch.device('cpu')))
+    get_sentiment(text, model)
+

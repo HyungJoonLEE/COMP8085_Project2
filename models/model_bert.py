@@ -1,3 +1,6 @@
+# TODO: Result can be seen in:
+#   https://colab.research.google.com/drive/1Jyor8yedKDLp_ZXbUEuS1JkR_S1Bof4r?usp=sharing
+
 import torch
 import torch.nn.functional as F
 from models import BERT_helper_class
@@ -6,27 +9,20 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import torchvision
-import transformers
-import json
 import warnings
 
 warnings.filterwarnings('ignore')
 
 from pylab import rcParams
 from collections import defaultdict
-from matplotlib import rc
-from textwrap import wrap
 from torch import nn, optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
 from transformers import AutoTokenizer, BertTokenizer, BertModel, \
     get_linear_schedule_with_warmup
-from pygments import highlight
-from pygments.lexers import JsonLexer
-from pygments.formatters import TerminalFormatter
+
 
 sns.set(style='whitegrid', palette='muted', font_scale=1.2)
 sns.set_palette(sns.color_palette("Paired"))
@@ -247,11 +243,15 @@ def get_predictions(model, data_loader):
     return review_texts, predictions, prediction_probs, real_values
 
 
-def process_bert(train_df, val_df, EPOCHS, model,
+def process_bert(train_df, val_df, EPOCHS,
                  train_loader, val_loader,
                  loss_fn, optimizer, device, scheduler, target):
     history = defaultdict(list)
     best_accuracy = 0
+
+    class_names = ['1', '2', '3', '4', '5']
+    model = BERT_helper_class.SentimentClassifier(len(class_names))
+    model = model.to(device)
 
     df_train_size = len(train_df)
     df_val_size = len(val_df)
@@ -402,7 +402,7 @@ def live_star_prediction(trained_model_name, text):
     get_sentiment(text, model)
 
 
-def train_model(training_data, test_data, validate_data, target):
+def create_train_model(training_data, test_data, validate_data, target):
     train_df = read_file(training_data)
     val_df = read_file(validate_data)
     test_df = read_file(test_data)
@@ -413,7 +413,8 @@ def train_model(training_data, test_data, validate_data, target):
 
     training_data, validation_data, test_data = set_dataset(train_df,
                                                             val_df,
-                                                            test_df)
+                                                            test_df,
+                                                            target)
     train_loader, test_loader, val_loader = set_dataloader(training_data,
                                                            test_data,
                                                            validation_data)
@@ -421,6 +422,6 @@ def train_model(training_data, test_data, validate_data, target):
     model = set_sentiment_classifier(sample_batch)
     EPOCHS, optimizer, total_steps, scheduler, loss_fn = set_optimizer(model,
                                                                        train_loader)
-    process_bert(train_df, val_df, EPOCHS, model,
+    process_bert(train_df, val_df, EPOCHS,
                  train_loader, val_loader,
                  loss_fn, optimizer, device, scheduler, target)

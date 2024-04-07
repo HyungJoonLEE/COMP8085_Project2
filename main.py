@@ -16,7 +16,7 @@ validate_data = './data/validate_data.csv'
 
 args_create_hashmap = {
     'NB': NB1.naive_bay,
-    'BERT': model_bert.train_model,
+    'BERT': model_bert.create_train_model,
 }
 
 args_use_hashmap = {

@@ -49,6 +49,22 @@ sentiment_score_map = {
 def read_file(file_name):
     df = pd.read_csv(file_name)
     df['stars'] = df['stars'].astype(int)
+
+    # Replace NaN with 0
+    df['funny'] = df['funny'].fillna(0)
+    df['useful'] = df['useful'].fillna(0)
+    df['cool'] = df['cool'].fillna(0)
+
+    # Add 1 to each column
+    df['funny'] = df['funny'] + 1
+    df['useful'] = df['useful'] + 1
+    df['cool'] = df['cool'] + 1
+
+    # Cap values at 5
+    df.loc[df['funny'] > 5, 'funny'] = 5
+    df.loc[df['useful'] > 5, 'useful'] = 5
+    df.loc[df['cool'] > 5, 'cool'] = 5
+
     return df
 
 

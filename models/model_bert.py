@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
+import pickle
 
 warnings.filterwarnings('ignore')
 
@@ -273,6 +274,7 @@ def process_bert(train_df, val_df, EPOCHS,
     df_val_size = len(val_df)
 
     filename = f"bert_model_{target}.bin"
+    pickle_filename = f"bert_model_{target}.pkl"
 
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch + 1}/ {EPOCHS}')
@@ -293,6 +295,8 @@ def process_bert(train_df, val_df, EPOCHS,
 
         if val_acc > best_accuracy:
             torch.save(model.state_dict(), filename)
+            with open(pickle_filename, 'wb') as file:
+                pickle.dump(model.state_dict(), file)
             best_accuracy = val_acc
 
 

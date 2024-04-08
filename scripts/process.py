@@ -8,6 +8,8 @@ from nltk.corpus import wordnet
 from nltk import pos_tag
 from word2number import w2n
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
 
 
 TREEBANK_TO_WORDNET_POS = {
@@ -110,6 +112,23 @@ def clean_json(input_file_path, output_file_path):
 def save_to_csv(data, file_path):
     reviews = pd.DataFrame(data, columns=['stars', 'useful', 'funny', 'cool',
                                           'text'])
+    # Replace NaN with 0
+    reviews['funny'] = reviews['funny'].fillna(0)
+    reviews['useful'] = reviews['useful'].fillna(0)
+    reviews['cool'] = reviews['cool'].fillna(0)
+    reviews = reviews.dropna(subset=['text'])
+    reviews = reviews.loc[reviews['text'] != '']
+
+    # Add 1 to each column
+    reviews['funny'] = reviews['funny'] + 1
+    reviews['useful'] = reviews['useful'] + 1
+    reviews['cool'] = reviews['cool'] + 1
+
+    # Cap values at 5
+    reviews.loc[reviews['funny'] > 5, 'funny'] = 5
+    reviews.loc[reviews['useful'] > 5, 'useful'] = 5
+    reviews.loc[reviews['cool'] > 5, 'cool'] = 5
+
     reviews = reviews.loc[(reviews['funny'] != -1) &
                           (reviews['useful'] != -1) &
                           (reviews['cool'] != -1)]
@@ -139,3 +158,13 @@ def split_data(file_name):
     train_df.to_csv('./data/train_data.csv', index=False)
     test_df.to_csv('./data/test_data.csv', index=False)
     validate_df.to_csv('./data/validate_data.csv', index=False)
+
+
+def plot_labels(df, target):
+    ds_labels = df[target].value_counts(normalize=True)
+    ds_labels.sort_index(inplace=True)
+    plt.figure(figsize=(4,3))
+    ax = ds_labels.plot(kind="bar")
+    ax.set_xlabel(f'{target}')
+    ax.set_ylabel("Ratio")
+    plt.show()

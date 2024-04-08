@@ -4,6 +4,7 @@ import os
 from scripts import process
 from models import NB1
 from models import model_bert
+import pandas as pd
 
 
 # TODO: You need to add json file to ./data directory
@@ -71,6 +72,12 @@ def main():
             # TODO: ADD Trained Model for each member
             # model_bert.live_star_prediction(f"{args.use}", "This is so good")
             use_function_by_key(f"{args.test_set}", review_attribute)
+
+
+
+
+        # df = pd.read_csv(output_file_path)
+        # process.plot_labels(df, 'cool')
 
 
 def create_function_by_key(key, training_data, test_data, validate_data,

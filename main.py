@@ -2,7 +2,7 @@ import sys
 import argparse
 import os
 from scripts import process
-from models import NB1
+from models import NB
 from models import model_bert
 import pandas as pd
 
@@ -16,23 +16,19 @@ validate_data = './data/validate_data.csv'
 
 
 args_create_hashmap = {
-    'NB': NB1.naive_bay,
     'BERT': model_bert.create_train_model,
+    'NB': NB.create_train_model,
 }
 
 args_use_hashmap = {
     'BERT': model_bert.use_trained_model,
+    'NB': NB.use_train_model,
 }
 
 
 def main():
-    if not os.path.exists(output_file_path):
-        # nltk.download('averaged_perceptron_tagger')
-
-        # This is for cleaning unused attribute in data field
+    if not os.path.exists(output_file_path) or not os.path.exists(training_data):
         process.clean_json(input_file_path, output_file_path)
-
-        # Data split function for train, test, and validate
         process.split_data(output_file_path)
     else:
         """
@@ -65,15 +61,14 @@ def main():
         # Handling --create or --use with the model name
         if args.create:
             print(f"Action: Create new model using '{args.create}'")
-            create_function_by_key(args.create, training_data, test_data,
-                                validate_data, review_attribute)
+            create_function_by_key(args.create, training_data, test_data, validate_data, review_attribute)
         elif args.use:
             print(f"Action: Use existing model named '{args.use}'")
             # TODO: ADD Trained Model for each member
             # model_bert.live_star_prediction(f"{args.use}", "This is so good")
-            use_function_by_key(f"{args.test_set}", review_attribute)
+            use_function_by_key(args.use, args.test_set, review_attribute)
 
-
+        #use_function_by_key(key, test_data, target):
 
 
         # df = pd.read_csv(output_file_path)
@@ -92,7 +87,7 @@ def create_function_by_key(key, training_data, test_data, validate_data,
 def use_function_by_key(key, test_data, target):
     if key in args_use_hashmap:
         function_to_run = args_use_hashmap[key]
-        function_to_run(training_data, test_data, validate_data, target)
+        function_to_run(test_data, target)
     else:
         print(f"No function found for key: {key}")
 

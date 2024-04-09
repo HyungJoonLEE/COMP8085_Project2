@@ -2,12 +2,14 @@ import os
 import pickle
 
 from gensim.utils import simple_preprocess
+from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import  LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 
+import seaborn as sns
 import numpy as np
 import pandas as pd
 import warnings
@@ -16,7 +18,7 @@ import nltk
 nltk.download('stopwords')
 
 alpha = 0.8
-total = 200000
+total = 10000
 
 
 def preprocess_text_data(df):
@@ -263,6 +265,7 @@ def stars(trainning_file, test_file, validation_file):
     Y_test = test_data['stars']
 
     # Feature extraction
+
     count_vectorizer = CountVectorizer(ngram_range=(1, 1))
     X_train_counts = count_vectorizer.fit_transform(X_train)
     X_test_counts = count_vectorizer.transform(X_test)
@@ -270,7 +273,7 @@ def stars(trainning_file, test_file, validation_file):
     # Model training
     mnb = MultinomialNB(alpha=0.80)
     mnb.fit(X_train_counts, Y_train)
-
+    feature_log_prob = mnb.feature_log_prob_
     pred = mnb.predict(X_test_counts)
 
     report = classification_report(Y_test, pred)
@@ -278,19 +281,44 @@ def stars(trainning_file, test_file, validation_file):
     print("=============== Stars with MultinomialNB ==================")
     print(report)
     print(scm)
+
+
     with open('MultinomialNB_stars_model.pkl', 'wb') as model_file:
         pickle.dump(mnb, model_file)
 
     with open('count_vectorizer.pkl', 'wb') as vectorizer_file:
         pickle.dump(count_vectorizer, vectorizer_file)
+    n_top_features = 10
+    feature_names = count_vectorizer.get_feature_names_out()
+    feature_log_prob = mnb.feature_log_prob_
+
+    log_probabilities = mnb.feature_log_prob_[0]
+    feature_importance = zip(feature_names, log_probabilities)
+    sorted_features_by_importance = sorted(feature_importance, key=lambda x: x[1], reverse=True)
+    for feature, importance in sorted_features_by_importance[:10]:  # Top 10 features
+        print(f"{feature}: {importance}")
+    # Plotting
+    # Generate the plot
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=sorted_features_by_importance, y=feature_names)
+    plt.xlabel('Log Probability')
+    plt.ylabel('Feature')
+    plt.title('Top Features by Log Probability in MultinomialNB Model')
+    plt.show()
+
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(scm, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.title('Confusion Matrix')
+    plt.show()
+    # Saving the model and vectorizer
+
 
 def funny_useful_cool(trainning_file, test_file, validation_file, target):
     features = ['cool', 'funny', 'useful']  # All potential columns
     for target in features:
-        labels = list(range(1, 6))
-        labels_names = [f"{i+1}" + target for i in range(0, 5)]
-        filtered_features = [feature for feature in features if feature != target]
-
         training_data = pd.read_csv(trainning_file, nrows=total)
         test_data = pd.read_csv(test_file, nrows=total)
         validation_data = pd.read_csv(validation_file, nrows=total)
@@ -329,6 +357,38 @@ def funny_useful_cool(trainning_file, test_file, validation_file, target):
 
         with open(f'TfidfVectorizer_{target}.pkl', 'wb') as TfidfVectorizer_file:
             pickle.dump(tfidf_vectorizer, TfidfVectorizer_file)
+
+        feature_names = tfidf_vectorizer.get_feature_names_out()
+        coefficients = logisticReg.coef_[0]  # For binary classification or one vs rest
+
+        # Getting the absolute values of coefficients for ranking
+        sorted_indices = np.argsort(np.abs(coefficients))[::-1]
+
+        # Selecting the top n features/words
+        n_top_features = 10
+        top_feature_names = feature_names[sorted_indices[:n_top_features]]
+        top_coefficients = coefficients[sorted_indices[:n_top_features]]
+
+        # Printing out the top words/features and their coefficients
+        print("Top words/features and their coefficients:")
+        for feature, coef in zip(top_feature_names, top_coefficients):
+            print(f"{feature}: {coef}")
+
+        # Plotting
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=top_coefficients, y=top_feature_names)
+        plt.xlabel('Coefficient Value')
+        plt.ylabel('Top Features (Words)')
+        plt.title('Top Features by Coefficient Value in Logistic Regression Model')
+        plt.show()
+
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(scm, annot=True, fmt='d', cmap='Blues')
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.title('Confusion Matrix')
+        plt.show()
+
 def use_stars_model(file_name, target):
     with open('MultinomialNB_stars_model.pkl', 'rb') as model_file:
         loaded_model = pickle.load(model_file)
@@ -385,8 +445,10 @@ def use_other_regression_models(file_name, target):
         print(new_scm)
 
 def create_train_model(trainning_file, test_file, validation_file, target):
-    stars(trainning_file, test_file, validation_file)
-    funny_useful_cool(trainning_file, test_file, validation_file, target)
+    if target == stars:
+        stars(trainning_file, test_file, validation_file)
+    else:
+        funny_useful_cool(trainning_file, test_file, validation_file, target)
     #text_linReg(trainning_file, test_file, validation_file, target)
 def use_train_model(file_name, target):
     if 'stars' in file_name:

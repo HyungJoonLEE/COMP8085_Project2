@@ -4,9 +4,9 @@ import pickle
 from gensim.utils import simple_preprocess
 from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from sklearn.linear_model import  LogisticRegression
+from sklearn.linear_model import LogisticRegression, BayesianRidge
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, mean_squared_error, mean_absolute_error, r2_score
 from sklearn.metrics import confusion_matrix
 
 import seaborn as sns
@@ -18,8 +18,8 @@ import nltk
 nltk.download('stopwords')
 
 alpha = 0.8
-total = 10000
-
+total = 50000
+total1 = 15000
 
 def preprocess_text_data(df):
     # Check and replace non-string entries with "NOT_A_STRING"
@@ -316,7 +316,7 @@ def stars(trainning_file, test_file, validation_file):
     # Saving the model and vectorizer
 
 
-def funny_useful_cool(trainning_file, test_file, validation_file, target):
+def funny_useful_cool_logistic_regression_report(trainning_file, test_file, validation_file, target):
     features = ['cool', 'funny', 'useful']  # All potential columns
     for target in features:
         training_data = pd.read_csv(trainning_file, nrows=total)
@@ -389,10 +389,74 @@ def funny_useful_cool(trainning_file, test_file, validation_file, target):
         plt.title('Confusion Matrix')
         plt.show()
 
+
+def funny_useful_cool_probalistic_regression_report(trainning_file, test_file, validation_file, target):
+    features = ['cool', 'funny', 'useful']  # All potential columns
+    for target in features:
+        training_data = pd.read_csv(trainning_file, nrows=total1)
+        test_data = pd.read_csv(test_file, nrows=total1)
+        validation_data = pd.read_csv(validation_file, nrows=total1)
+
+        training_data = preprocess_text_data(training_data)
+        test_data = preprocess_text_data(test_data)
+
+        count_vectorizer = CountVectorizer()
+        X_train = count_vectorizer.fit_transform(training_data['text']).toarray()  # Convert to dense array immediately
+        X_test = count_vectorizer.transform(test_data['text']).toarray()
+
+        y_train = training_data[target].values
+        y_test = test_data[target].values
+
+        # Model training with BayesianRidge
+        bayesianRidgeModel = BayesianRidge()
+        bayesianRidgeModel.fit(X_train, y_train)
+
+        # Prediction
+        y_pred = bayesianRidgeModel.predict(X_test)
+
+        # Evaluation
+        # Adjusted to use regression metrics
+        mse = mean_squared_error(y_test, y_pred)
+        mae = mean_absolute_error(y_test, y_pred)
+
+        print(f"=============== {target} with BayesianRidge ==================")
+        # Assuming y_test and y_pred are already defined
+        mse = mean_squared_error(y_test, y_pred)
+        mae = mean_absolute_error(y_test, y_pred)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(y_test, y_pred)
+
+        print(f"Regression Report for {target}")
+        print(f"Mean Absolute Error (MAE): {mae:.2f}")
+        print(f"Mean Squared Error (MSE): {mse:.2f}")
+        print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+        print(f"R-squared (R²): {r2:.2f}")
+
+        # Saving the model and vectorizer
+        with open(f'bayesian_ridge_{target}.pkl', 'wb') as file:
+            pickle.dump(bayesianRidgeModel, file)
+
+        with open(f'count_vectorizer_{target}.pkl', 'wb') as vectorCount_file:
+            pickle.dump(count_vectorizer, vectorCount_file)
+
+        feature_names = count_vectorizer.get_feature_names_out()
+        coefficients = bayesianRidgeModel.coef_
+
+        # Getting the absolute values of coefficients for ranking and plotting
+        sorted_indices = np.argsort(np.abs(coefficients))[::-1]
+        top_feature_names = feature_names[sorted_indices[:10]]  # Top 10 features
+        top_coefficients = coefficients[sorted_indices[:10]]
+
+        # Plotting the top features based on their coefficients
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=top_coefficients, y=top_feature_names)
+        plt.xlabel('Coefficient Value')
+        plt.ylabel('Features')
+        plt.title(f'Top Features by Coefficient Value in Bayesian Ridge Model for {target}')
+        plt.show()
 def use_stars_model(file_name, target):
     with open('MultinomialNB_stars_model.pkl', 'rb') as model_file:
         loaded_model = pickle.load(model_file)
-
 
     with open('count_vectorizer.pkl', 'rb') as vectorizer_file:
         loaded_vectorizer = pickle.load(vectorizer_file)
@@ -414,7 +478,7 @@ def use_stars_model(file_name, target):
     print(scm)
 
 
-def use_other_regression_models(file_name, target):
+def use_other_logistic_regression_models(file_name, target):
     features = ['cool', 'funny', 'useful']  # All potential columns
     for target in features:
         print(f"staring to analyze {target}")
@@ -444,14 +508,50 @@ def use_other_regression_models(file_name, target):
         print(new_report)
         print(new_scm)
 
+
+def use_other_probability_regression_models(file_name, target):
+    features = ['cool', 'funny', 'useful']  # All potential columns
+    for target in features:
+        print(f"Starting to analyze {target}")
+
+        with open(f'bayesian_ridge_{target}.pkl', 'rb') as file:
+            loaded_model = pickle.load(file)
+        with open(f'count_vectorizer_{target}.pkl', 'rb') as file:
+            loaded_vectorizer = pickle.load(file)
+
+        new_test_data = pd.read_csv('data/test_data.csv', nrows=total1)
+        new_test_data = preprocess_text_data(new_test_data)
+
+        # Transform the new test data
+        X_new_test = loaded_vectorizer.transform(
+            new_test_data['text']).toarray()
+
+        # Make predictions
+        new_predictions = loaded_model.predict(X_new_test)
+
+        Y_new_test = new_test_data[target].values
+
+        mse = mean_squared_error(Y_new_test, new_predictions)
+        mae = mean_absolute_error(Y_new_test, new_predictions)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(Y_new_test, new_predictions)
+
+        print(f"=============== {target} with BayesianRidge ==================")
+        print(f"Mean Absolute Error (MAE): {mae:.2f}")
+        print(f"Mean Squared Error (MSE): {mse:.2f}")
+        print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+        print(f"R-squared (R²): {r2:.2f}")
+
 def create_train_model(trainning_file, test_file, validation_file, target):
     if target == stars:
         stars(trainning_file, test_file, validation_file)
     else:
-        funny_useful_cool(trainning_file, test_file, validation_file, target)
-    #text_linReg(trainning_file, test_file, validation_file, target)
+        #funny_useful_cool_logistic_regression_report(trainning_file, test_file, validation_file, target)
+        funny_useful_cool_probalistic_regression_report(trainning_file, test_file, validation_file, target)
+
 def use_train_model(file_name, target):
     if 'stars' in file_name:
       use_stars_model(file_name, target)
     else:
-      use_other_regression_models(file_name, target)
+      #use_other_logistic_regression_models(file_name, target)
+      use_other_probability_regression_models(file_name, target)

@@ -17,9 +17,9 @@ import nltk
 
 nltk.download('stopwords')
 
-alpha = 0.8
-total = 50000
-total1 = 15000
+alpha = 0.9
+total = 200000
+total1 = 5000
 
 def preprocess_text_data(df):
     # Check and replace non-string entries with "NOT_A_STRING"
@@ -188,6 +188,8 @@ def text_linReg(trainning_file, test_file, validation_file, target):
         print(x_test.shape)
         print(y_test.shape)
 def stars(trainning_file, test_file, validation_file):
+
+
     training_data = pd.read_csv(trainning_file, nrows=total)
     test_data = pd.read_csv(test_file, nrows=total)
     validation_data = pd.read_csv(validation_file, nrows=total)
@@ -265,7 +267,6 @@ def stars(trainning_file, test_file, validation_file):
     Y_test = test_data['stars']
 
     # Feature extraction
-
     count_vectorizer = CountVectorizer(ngram_range=(1, 1))
     X_train_counts = count_vectorizer.fit_transform(X_train)
     X_test_counts = count_vectorizer.transform(X_test)
@@ -273,7 +274,7 @@ def stars(trainning_file, test_file, validation_file):
     # Model training
     mnb = MultinomialNB(alpha=0.80)
     mnb.fit(X_train_counts, Y_train)
-    feature_log_prob = mnb.feature_log_prob_
+
     pred = mnb.predict(X_test_counts)
 
     report = classification_report(Y_test, pred)
@@ -282,46 +283,71 @@ def stars(trainning_file, test_file, validation_file):
     print(report)
     print(scm)
 
-
     with open('MultinomialNB_stars_model.pkl', 'wb') as model_file:
         pickle.dump(mnb, model_file)
 
     with open('count_vectorizer.pkl', 'wb') as vectorizer_file:
         pickle.dump(count_vectorizer, vectorizer_file)
+
     n_top_features = 10
     feature_names = count_vectorizer.get_feature_names_out()
-    feature_log_prob = mnb.feature_log_prob_
-
     log_probabilities = mnb.feature_log_prob_[0]
     feature_importance = zip(feature_names, log_probabilities)
-    sorted_features_by_importance = sorted(feature_importance, key=lambda x: x[1], reverse=True)
-    for feature, importance in sorted_features_by_importance[:10]:  # Top 10 features
-        print(f"{feature}: {importance}")
-    # Plotting
-    # Generate the plot
+    sorted_features_by_importance = sorted(feature_importance, key=lambda x: x[1], reverse=True)[:n_top_features]
+
+    # Separate the features and their log probabilities for plotting
+    features, importances = zip(*sorted_features_by_importance)
+
     plt.figure(figsize=(10, 6))
-    sns.barplot(x=sorted_features_by_importance, y=feature_names)
+    sns.barplot(x=list(importances), y=list(features))
     plt.xlabel('Log Probability')
     plt.ylabel('Feature')
     plt.title('Top Features by Log Probability in MultinomialNB Model')
     plt.show()
 
-
     plt.figure(figsize=(8, 6))
-    sns.heatmap(scm, annot=True, fmt='d', cmap='Blues')
+    sns.heatmap(scm, annot=True, fmt='d', cmap='Blues', xticklabels=count_vectorizer.get_feature_names_out(),
+                yticklabels=count_vectorizer.get_feature_names_out())
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title('Confusion Matrix')
     plt.show()
+    ############################# Top ten words ##############################
+    # # Feature extraction
+    # top_ten = sorted(words.items(), key=lambda item: item[1], reverse=True)[:10]
+    # top_ten_words = [word for word, count in top_ten]
+    # # Create a CountVectorizer limited to the top_ten_words
+    # top_count_vectorizer = CountVectorizer(ngram_range=(1, 1), vocabulary=top_ten_words)
+    #
+    # # Transform the text data to use only the top ten words
+    # X_train_counts = top_count_vectorizer.fit_transform(X_train)
+    # X_test_counts = top_count_vectorizer.transform(X_test)
+    #
+    # # Model training with Multinomial Naive Bayes
+    # nb = MultinomialNB(alpha=0.80)
+    # nb.fit(X_train_counts, Y_train)
+    #
+    # # Predictions and evaluation
+    # pred = nb.predict(X_test_counts)
+    # report = classification_report(Y_test, pred)
+    # scm = confusion_matrix(Y_test, pred)
+    # print("=============== Stars with ToP ten words MultinomialNB ==================")
+    # # Output the classification report and confusion matrix
+    # print(report)
+    # print(scm)
+    #######################################################
+
+
+
     # Saving the model and vectorizer
 
 
 def funny_useful_cool_logistic_regression_report(trainning_file, test_file, validation_file, target):
     features = ['cool', 'funny', 'useful']  # All potential columns
     for target in features:
-        training_data = pd.read_csv(trainning_file, nrows=total)
-        test_data = pd.read_csv(test_file, nrows=total)
-        validation_data = pd.read_csv(validation_file, nrows=total)
+        training_data = pd.read_csv(trainning_file, nrows=total1)
+        test_data = pd.read_csv(test_file, nrows=total1)
+        validation_data = pd.read_csv(validation_file, nrows=total1)
 
         training_data = preprocess_text_data(training_data)
         test_data = preprocess_text_data(test_data)
@@ -478,6 +504,7 @@ def use_stars_model(file_name, target):
     print(scm)
 
 
+
 def use_other_logistic_regression_models(file_name, target):
     features = ['cool', 'funny', 'useful']  # All potential columns
     for target in features:
@@ -543,10 +570,10 @@ def use_other_probability_regression_models(file_name, target):
         print(f"R-squared (R²): {r2:.2f}")
 
 def create_train_model(trainning_file, test_file, validation_file, target):
-    if target == stars:
+    if target == 'stars':
         stars(trainning_file, test_file, validation_file)
     else:
-        #funny_useful_cool_logistic_regression_report(trainning_file, test_file, validation_file, target)
+     #   funny_useful_cool_logistic_regression_report(trainning_file, test_file, validation_file, target)
         funny_useful_cool_probalistic_regression_report(trainning_file, test_file, validation_file, target)
 
 def use_train_model(file_name, target):

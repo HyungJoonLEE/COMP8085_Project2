@@ -6,6 +6,8 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import pos_tag
+import nltk
+nltk.download('wordnet')
 from word2number import w2n
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt

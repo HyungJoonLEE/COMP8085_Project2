@@ -4,7 +4,9 @@ import os
 from scripts import process
 from models import NB
 from models import model_bert
+from models import SVM
 import pandas as pd
+
 
 
 # TODO: You need to add json file to ./data directory
@@ -18,11 +20,13 @@ validate_data = './data/validate_data.csv'
 args_create_hashmap = {
     'BERT': model_bert.create_train_model,
     'NB': NB.create_train_model,
+    'SVM': SVM.create_train_model,
 }
 
 args_use_hashmap = {
     'BERT': model_bert.use_trained_model,
     'NB': NB.use_train_model,
+    'SVM': SVM.use_train_model,
 }
 
 

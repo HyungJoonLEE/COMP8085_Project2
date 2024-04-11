@@ -456,7 +456,7 @@ def funny_useful_cool_probalistic_regression_report(trainning_file, test_file, v
         print(f"Mean Absolute Error (MAE): {mae:.2f}")
         print(f"Mean Squared Error (MSE): {mse:.2f}")
         print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
-        print(f"R-squared (R²): {r2:.2f}")
+        print(f"R-squared (RÂ²): {r2:.2f}")
 
         # Saving the model and vectorizer
         with open(f'bayesian_ridge_{target}.pkl', 'wb') as file:
@@ -567,7 +567,7 @@ def use_other_probability_regression_models(file_name, target):
         print(f"Mean Absolute Error (MAE): {mae:.2f}")
         print(f"Mean Squared Error (MSE): {mse:.2f}")
         print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
-        print(f"R-squared (R²): {r2:.2f}")
+        print(f"R-squared (RÂ²): {r2:.2f}")
 
 def create_train_model(trainning_file, test_file, validation_file, target):
     if target == 'stars':

@@ -45,6 +45,10 @@ def main():
 
             2) use (TRAINED model)
             main.py test_data.csv --use BERT --cool
+            
+            For NB:
+            - to run starts stars -> MultinomialNB_stars.pkl --use NB --useful
+            - to run all three columns-> TfidfVectorizer_useful.pkl --use NB --useful
         """
         # TODO: When we are ready we will comment out lines below
         args = get_args(sys.argv[1:]).parse_args()

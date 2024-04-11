@@ -7,7 +7,7 @@ from models import model_bert
 from models import SVM
 import pandas as pd
 
-
+# BERT CoLab Link: https://colab.research.google.com/drive/1Jyor8yedKDLp_ZXbUEuS1JkR_S1Bof4r?usp=sharing
 
 # TODO: You need to add json file to ./data directory
 input_file_path = './data/yelp_academic_dataset_review.json'
@@ -72,15 +72,12 @@ def main():
             create_function_by_key(args.create, training_data, test_data, validate_data, review_attribute)
         elif args.use:
             print(f"Action: Use existing model named '{args.use}'")
-            # TODO: ADD Trained Model for each member
-            # model_bert.live_star_prediction(f"{args.use}", "This is so good")
             use_function_by_key(args.use, args.test_set, review_attribute)
 
-        #use_function_by_key(key, test_data, target):
-
-
-        # df = pd.read_csv(output_file_path)
-        # process.plot_labels(df, 'cool')
+        # TODO: Text based star prediction for BERT Experiment 2
+        # Comment above and put Bert 'stars' model to {model name} to run the
+        # program
+        # model_bert.live_star_prediction(f"{model name}", "This is so good")
 
 
 def create_function_by_key(key, training_data, test_data, validate_data,
